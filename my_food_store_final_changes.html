@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="ceb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Food Store</title>
+<style>
+:root{--bg:#f7f7f5;--card:#fff;--ink:#222;--muted:#777;--accent:#e85d04;--line:#e7e7e7;--ok:#18864b}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.nav{max-width:1100px;margin:auto;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand{font-weight:800;font-size:20px}.nav button{border:0;background:#f1f1f1;padding:10px 14px;border-radius:10px;cursor:pointer}
+.wrap{max-width:1100px;margin:auto;padding:24px 18px}.hero{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px;margin-bottom:22px}
+h1,h2,h3{margin-top:0}.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}.food-img{width:100%;height:180px;object-fit:cover;background:#eee;display:block}.card-body{padding:15px}.price{font-size:20px;font-weight:800}.stock{font-size:13px;color:var(--muted);margin:5px 0 12px}
+button,.btn{cursor:pointer;border:0;border-radius:10px;padding:11px 14px;background:var(--accent);color:white;font-weight:700}.btn.secondary,button.secondary{background:#eee;color:#222}.btn.danger{background:#b42318}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.space{justify-content:space-between}
+input,textarea,select{width:100%;padding:11px 12px;border:1px solid #d8d8d8;border-radius:10px;font:inherit;background:#fff}label{display:block;font-weight:700;font-size:14px;margin:12px 0 6px}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.full{grid-column:1/-1}
+.panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:18px}
+.cart{position:fixed;right:18px;bottom:18px;background:#222;color:#fff;border-radius:999px;padding:14px 18px;box-shadow:0 8px 30px #0002;z-index:10}
+.hidden{display:none!important}.qty{display:flex;align-items:center;gap:8px}.qty button{padding:7px 11px;background:#eee;color:#222}.thumb{width:70px;height:55px;object-fit:cover;border-radius:8px}.order{border-top:1px solid var(--line);padding:14px 0}.tag{display:inline-block;padding:4px 8px;border-radius:999px;background:#eee;font-size:12px}.ok{background:#e5f6ed;color:var(--ok)}
+.small{font-size:12px}.empty{text-align:center;padding:40px;color:var(--muted)}
+@media(max-width:650px){.formgrid{grid-template-columns:1fr}.full{grid-column:auto}.food-img{height:160px}}
+</style>
+
+<style>
+.cancel-order-btn{
+  background:#dc2626 !important;
+  color:#fff !important;
+  border:1px solid #b91c1c !important;
+}
+.cancel-order-btn:hover{
+  background:#b91c1c !important;
+}
+</style>
+
+</head>
+<body>
+<header><div class="nav"><div class="brand" id="storeName">My Food Store</div><div class="row"><button onclick="showShop()">Shop</button><button class="secondary" onclick="showAdmin()">Admin</button></div></div></header>
+
+<main class="wrap">
+<section id="shopView">
+  <div class="hero"><h1 id="heroTitle">Lami nga pagkaon, ready to order.</h1><p class="muted">Pili og food, quantity, ug delivery details. Simple ra.</p></div>
+  <div id="foodGrid" class="grid"></div>
+</section>
+
+<section id="adminView" class="hidden">
+  <div class="panel">
+    <div class="row space"><div><h2>Admin</h2><p class="muted">Manage foods, stock, GCash details, ug orders.</p></div><button class="secondary" onclick="showShop()">Back to Shop</button></div>
+    <div id="adminLogin">
+      <label>Admin PIN</label><input id="pin" type="password" inputmode="numeric" placeholder="Enter admin PIN">
+      <br><br><button onclick="loginAdmin()">Login</button>
+    </div>
+    <div id="adminContent" class="hidden">
+      <h3>Store settings</h3>
+      <div class="formgrid">
+        <div><label>Store name</label><input id="setName"></div>
+        <div><label>GCash number</label><input id="setGcash"></div>
+        <div class="full"><label>GCash account name</label><input id="setGcashName"></div>
+        <div class="full">
+          <label>GCash QR Code</label>
+          <input id="setGcashQR" type="file" accept="image/*">
+          <div id="gcashQRPreview" style="margin-top:10px"></div>
+          <small class="muted">Upload your GCash QR code. Customers will see it when they choose GCash.</small>
+        </div>
+      </div>
+      <br><button onclick="saveSettings()">Save settings</button>
+      <div class="panel" style="margin-top:16px"><h3>Change Admin PIN</h3><div class="formgrid"><div><label>Current PIN</label><input id="currentPin" type="password" inputmode="numeric"></div><div><label>New PIN</label><input id="newPin" type="password" inputmode="numeric" placeholder="4 or more digits"></div></div><br><button onclick="changeAdminPin()">Change PIN</button></div>
+
+      <hr style="border:0;border-top:1px solid var(--line);margin:24px 0">
+      <h3 id="foodFormTitle">Add food</h3>
+      <div class="formgrid">
+        <div><label>Food name</label><input id="fName" placeholder="e.g. Lumpia"></div>
+        <div><label>Price (₱)</label><input id="fPrice" type="number" min="0" step="0.01"></div>
+        <div><label>Total quantity for sale</label><input id="fQty" type="number" min="0" step="1"></div>
+        <div><label>Image</label><input id="fImage" type="file" accept="image/*"></div>
+      </div>
+      <br><div class="row"><button onclick="saveFood()">Save food</button><button class="secondary" onclick="resetFoodForm()">Clear</button></div>
+      <div id="adminFoods" style="margin-top:20px"></div>
+
+      <hr style="border:0;border-top:1px solid var(--line);margin:24px 0">
+      <div class="row space"><h3 style="margin:0">Orders</h3><button class="danger" onclick="clearOrders()">Clear all orders</button></div><div id="orders"></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<button id="cartBtn" class="cart" onclick="openCart()">Cart (<span id="cartCount">0</span>) · ₱<span id="cartTotal">0</span></button>
+
+<div id="cartModal" class="hidden" style="position:fixed;inset:0;background:#0008;z-index:20;padding:20px;overflow:auto">
+<div class="panel" style="max-width:650px;margin:30px auto">
+<div class="row space"><h2>Your order</h2><button class="secondary" onclick="closeCart()">Close</button></div>
+<div id="cartItems"></div>
+<hr style="border:0;border-top:1px solid var(--line)">
+<h3>Customer & delivery details</h3>
+<div class="formgrid">
+<div><label>Name</label><input id="cName"></div>
+<div><label>Contact number</label><input id="cPhone"></div>
+<div class="full"><label>Delivery address</label><textarea id="cAddress" rows="3" placeholder="House/Unit, Street, Barangay, City"></textarea></div>
+<div><label>Payment</label><select id="cPayment" onchange="toggleGcash()"><option value="COD">Cash on Delivery</option><option value="GCash">GCash</option></select></div>
+<div id="gcashRefWrap"><label>GCash reference number</label><input id="cRef" placeholder="Enter GCash reference number" inputmode="numeric"></div>
+</div>
+<div id="gcashInfo" class="panel hidden" style="margin-top:14px"></div>
+<div class="row space" style="margin-top:16px"><strong>Total: ₱<span id="checkoutTotal">0</span></strong><div class="row" style="gap:8px;justify-content:flex-start"><button type="button" class="cancel-order-btn" onclick="cancelCartOrder()">Cancel</button><button onclick="placeOrder()">Place order</button></div></div>
+</div></div>
+
+<script>
+const KEY='my_food_store_v1';
+let db;
+try{
+  db=JSON.parse(localStorage.getItem(KEY)||'null');
+}catch(e){
+  db=null;
+}
+if(!db || typeof db!=='object'){
+  db={
+    settings:{name:'My Food Store',gcash:'09XXXXXXXXX',gcashName:'Your Name',gcashQR:null,adminPin:'1234'},
+    foods:[],
+    orders:[]
+  };
+}
+if(!db.settings || typeof db.settings!=='object')db.settings={name:'My Food Store',gcash:'09XXXXXXXXX',gcashName:'Your Name',gcashQR:null,adminPin:'1234'};
+if(!Array.isArray(db.foods))db.foods=[];
+if(!Array.isArray(db.orders))db.orders=[];
+if(!db.settings.adminPin)db.settings.adminPin='1234';
+let cart={}; let editingId=null;
+function save(){
+  try{
+    localStorage.setItem(KEY,JSON.stringify(db));
+    return true;
+  }catch(e){
+    console.warn('Storage unavailable:',e);
+    return false;
+  }
+}
+function money(n){return Number(n).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function showShop(){document.getElementById('shopView').classList.remove('hidden');document.getElementById('adminView').classList.add('hidden');renderFoods();}
+function showAdmin(){document.getElementById('shopView').classList.add('hidden');document.getElementById('adminView').classList.remove('hidden');document.getElementById('adminLogin').classList.remove('hidden');document.getElementById('adminContent').classList.add('hidden');}
+function loginAdmin(){if(document.getElementById('pin').value===db.settings.adminPin){document.getElementById('adminLogin').classList.add('hidden');document.getElementById('adminContent').classList.remove('hidden');document.getElementById('pin').value='';loadAdmin();}else alert('Wrong PIN.')}
+function changeAdminPin(){let current=document.getElementById('currentPin').value.trim(),next=document.getElementById('newPin').value.trim();if(current!==db.settings.adminPin)return alert('Current PIN is incorrect.');if(!/^\d{4,}$/.test(next))return alert('New PIN must be at least 4 digits.');db.settings.adminPin=next;save();document.getElementById('currentPin').value='';document.getElementById('newPin').value='';alert('Admin PIN changed successfully.')}
+function loadAdmin(){
+document.getElementById('setName').value=db.settings.name;document.getElementById('setGcash').value=db.settings.gcash;document.getElementById('setGcashName').value=db.settings.gcashName;renderGcashQRPreview();renderAdminFoods();renderOrders();
+}
+async function saveSettings(){
+  db.settings.name=document.getElementById('setName').value||'My Food Store';
+  db.settings.gcash=document.getElementById('setGcash').value;
+  db.settings.gcashName=document.getElementById('setGcashName').value;
+  const qrInput=document.getElementById('setGcashQR');
+  if(qrInput && qrInput.files && qrInput.files[0]){
+    try{
+      db.settings.gcashQR=await resizeImage(qrInput.files[0],700,0.85);
+      qrInput.value='';
+    }catch(e){
+      alert('GCash QR could not be processed.');
+      return;
+    }
+  }
+  if(!db.settings.gcashQR) db.settings.gcashQR=null;
+  save();
+  renderGcashQRPreview();
+  renderFoods();
+  alert('Settings saved.');
+}
+function renderGcashQRPreview(){
+  const el=document.getElementById('gcashQRPreview');
+  if(!el)return;
+  const qr=db.settings.gcashQR;
+  if(qr){
+    el.innerHTML='<img src="'+qr+'" alt="GCash QR Code" style="width:180px;height:180px;object-fit:contain;border:1px solid #ddd;border-radius:10px;padding:6px;background:#fff"><br><button type="button" class="secondary" style="margin-top:8px" onclick="removeGcashQR()">Remove QR</button>';
+  }else{
+    el.innerHTML='<span class="small muted">No GCash QR uploaded.</span>';
+  }
+}
+function removeGcashQR(){
+  db.settings.gcashQR=null;
+  save();
+  renderGcashQRPreview();
+  alert('GCash QR removed.');
+}
+function renderFoods(){
+document.getElementById('storeName').textContent=db.settings.name;document.getElementById('heroTitle').textContent=db.settings.name;
+let el=document.getElementById('foodGrid'); if(!db.foods.length){el.innerHTML='<div class="empty">Wala pa kay food items. Adto sa Admin para mag-add.</div>';return;}
+el.innerHTML=db.foods.map(f=>`<article class="card"><img class="food-img" src="${f.image||placeholder()}" alt="${esc(f.name)}"><div class="card-body"><h3>${esc(f.name)}</h3><div class="price">₱${money(f.price)}</div><div class="stock">${f.qty>0?f.qty+' remaining':'Sold out'}</div><button ${f.qty<=0?'disabled':''} onclick="addToCart('${f.id}')">${f.qty>0?'Add to cart':'Sold out'}</button></div></article>`).join('');
+updateCart();
+}
+function placeholder(){return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400"><rect width="100%" height="100%" fill="#eee"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#999" font-size="28">Food image</text></svg>')}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function addToCart(id){let f=db.foods.find(x=>x.id===id);if(!f||f.qty<=0)return;cart[id]=Math.min((cart[id]||0)+1,f.qty);updateCart();}
+function updateCart(){let count=Object.values(cart).reduce((a,b)=>a+b,0);let total=Object.entries(cart).reduce((s,[id,q])=>s+(db.foods.find(f=>f.id===id)?.price||0)*q,0);document.getElementById('cartCount').textContent=count;document.getElementById('cartTotal').textContent=money(total);document.getElementById('checkoutTotal').textContent=money(total);}
+function openCart(){renderCart();document.getElementById('cartModal').classList.remove('hidden');toggleGcash();}
+function cancelCartOrder(){
+  cart={};
+  renderCart();
+  document.getElementById('cName').value='';
+  document.getElementById('cPhone').value='';
+  document.getElementById('cAddress').value='';
+  document.getElementById('cRef').value='';
+  document.getElementById('cPayment').value='COD';
+  toggleGcash();
+  closeCart();
+}
+function closeCart(){document.getElementById('cartModal').classList.add('hidden')}
+function renderCart(){let items=Object.entries(cart).filter(([id,q])=>q>0);let el=document.getElementById('cartItems');if(!items.length){el.innerHTML='<div class="empty">Your cart is empty.</div>';return;}el.innerHTML=items.map(([id,q])=>{let f=db.foods.find(x=>x.id===id);return `<div class="row space" style="padding:10px 0;border-bottom:1px solid var(--line)"><div class="row"><img class="thumb" src="${f.image||placeholder()}"><div><b>${esc(f.name)}</b><div class="small">₱${money(f.price)} each</div></div></div><div class="qty"><button onclick="changeQty('${id}',-1)">−</button><b>${q}</b><button onclick="changeQty('${id}',1)">+</button></div></div>`}).join('');updateCart();}
+function changeQty(id,d){let f=db.foods.find(x=>x.id===id);cart[id]=Math.max(0,Math.min(f.qty,(cart[id]||0)+d));if(!cart[id])delete cart[id];renderCart();}
+function toggleGcash(){
+  let gc=document.getElementById('cPayment').value==='GCash';
+  document.getElementById('gcashInfo').classList.toggle('hidden',!gc);
+  document.getElementById('gcashRefWrap').classList.toggle('hidden',!gc);
+  if(gc){
+    let qr=db.settings.gcashQR;
+    document.getElementById('gcashInfo').innerHTML=
+      '<b>GCash payment</b><br>Send payment to <b>'+esc(db.settings.gcash)+'</b><br>Account name: <b>'+esc(db.settings.gcashName)+'</b>'+
+      (qr?'<div style="margin-top:12px;text-align:center"><div class="small muted" style="margin-bottom:6px">Scan GCash QR</div><img src="'+qr+'" alt="GCash QR Code" style="width:230px;height:230px;object-fit:contain;border:1px solid #ddd;border-radius:10px;padding:8px;background:#fff"></div>':'');
+  }
+}
+function placeOrder(){
+let items=Object.entries(cart).filter(([id,q])=>q>0);if(!items.length)return alert('Add food to your cart first.');
+let name=document.getElementById('cName').value.trim(),phone=document.getElementById('cPhone').value.trim(),address=document.getElementById('cAddress').value.trim(),payment=document.getElementById('cPayment').value,ref=document.getElementById('cRef').value.trim();
+if(!name||!phone||!address)return alert('Please complete name, contact number, and delivery address.');
+if(payment==='GCash' && !ref)return alert('GCash reference number is required before placing your order.');
+for(let [id,q] of items){let f=db.foods.find(x=>x.id===id);if(!f||f.qty<q)return alert('Sorry, stock changed for one of your items. Please review your cart.');}
+let orderItems=items.map(([id,q])=>{let f=db.foods.find(x=>x.id===id);f.qty-=q;return {id,name:f.name,price:f.price,qty:q}});
+let total=orderItems.reduce((s,x)=>s+x.price*x.qty,0);
+let order={id:'ORD-'+Date.now(),date:new Date().toISOString(),name,phone,address,payment,ref,items:orderItems,total,status:'New'};
+db.orders.unshift(order);save();cart={};closeCart();renderFoods();alert('Order received! Order ID: '+order.id);
+}
+function resetFoodForm(){
+  editingId=null;
+  const title=document.getElementById('foodFormTitle');
+  if(title)title.textContent='Add food';
+  ['fName','fPrice','fQty'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.value='';
+  });
+  const image=document.getElementById('fImage');
+  if(image)image.value='';
+}
+async function saveFood(){
+  const nameEl=document.getElementById('fName');
+  const priceEl=document.getElementById('fPrice');
+  const qtyEl=document.getElementById('fQty');
+  const imageEl=document.getElementById('fImage');
+
+  if(!nameEl||!priceEl||!qtyEl||!imageEl){
+    alert('Food form could not be loaded. Please close and reopen the HTML file.');
+    return;
+  }
+
+  const name=nameEl.value.trim();
+  const price=Number(priceEl.value);
+  const qty=Number(qtyEl.value);
+
+  if(!name){alert('Please enter the food name.');nameEl.focus();return;}
+  if(priceEl.value===''||!Number.isFinite(price)||price<0){alert('Please enter a valid price.');priceEl.focus();return;}
+  if(qtyEl.value===''||!Number.isFinite(qty)||qty<0){alert('Please enter a valid quantity.');qtyEl.focus();return;}
+
+  let image=null;
+  const file=imageEl.files&&imageEl.files[0];
+  if(file){
+    try{ image=await resizeImage(file,900,0.72); }
+    catch(e){ console.warn('Image processing failed:',e); image=null; }
+  }
+
+  if(!Array.isArray(db.foods))db.foods=[];
+  const wasEditing=!!editingId;
+
+  if(wasEditing){
+    const f=db.foods.find(x=>x.id===editingId);
+    if(!f){editingId=null;alert('Food item not found.');return;}
+    f.name=name;f.price=price;f.qty=Math.floor(qty);
+    if(image)f.image=image;
+  }else{
+    db.foods.unshift({id:'F'+Date.now()+Math.random().toString(36).slice(2,7),name,price,qty:Math.floor(qty),image:image});
+  }
+
+  const saved=save();
+  resetFoodForm();
+  renderAdminFoods();
+  renderFoods();
+
+  if(saved){
+    alert(wasEditing?'Food updated successfully.':'Food added successfully.');
+  }else{
+    alert((wasEditing?'Food updated':'Food added')+' successfully for this session, but the browser did not allow permanent storage. The item is visible now; if it disappears after reopening, use the app from a web server instead of opening the HTML directly.');
+  }
+}
+
+function resizeImage(file,maxSize,quality){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onerror=()=>reject(reader.error||new Error('Could not read image'));
+    reader.onload=()=>{
+      const img=new Image();
+      img.onerror=()=>reject(new Error('Invalid image'));
+      img.onload=()=>{
+        const scale=Math.min(1,maxSize/Math.max(img.width,img.height));
+        const canvas=document.createElement('canvas');
+        canvas.width=Math.max(1,Math.round(img.width*scale));
+        canvas.height=Math.max(1,Math.round(img.height*scale));
+        const ctx=canvas.getContext('2d');
+        if(!ctx)return reject(new Error('Canvas unavailable'));
+        ctx.drawImage(img,0,0,canvas.width,canvas.height);
+        resolve(canvas.toDataURL('image/jpeg',quality));
+      };
+      img.src=reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function fileToDataURL(file){return new Promise((res,rej)=>{let r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);})}
+function renderAdminFoods(){let el=document.getElementById('adminFoods');if(!db.foods.length){el.innerHTML='<p class="muted">No food items yet.</p>';return;}el.innerHTML=db.foods.map(f=>`<div class="row space panel" style="margin-bottom:8px"><div class="row"><img class="thumb" src="${f.image||placeholder()}"><div><b>${esc(f.name)}</b><div class="small">₱${money(f.price)} · ${f.qty} remaining</div></div></div><div class="row"><button class="secondary" onclick="editFood('${f.id}')">Edit</button><button class="danger" onclick="deleteFood('${f.id}')">Delete</button></div></div>`).join('');}
+function editFood(id){let f=db.foods.find(x=>x.id===id);editingId=id;document.getElementById('foodFormTitle').textContent='Edit food';document.getElementById('fName').value=f.name;document.getElementById('fPrice').value=f.price;document.getElementById('fQty').value=f.qty;window.scrollTo({top:0,behavior:'smooth'});}
+function deleteFood(id){if(confirm('Delete this food?')){db.foods=db.foods.filter(f=>f.id!==id);save();renderAdminFoods();renderFoods();}}
+function renderOrders(){let el=document.getElementById('orders');if(!db.orders.length){el.innerHTML='<p class="muted">No orders yet.</p>';return;}el.innerHTML=db.orders.map(o=>`<div class="order"><div class="row space"><b>${o.id}</b><span class="tag ${o.status==='Completed'?'ok':''}">${o.status}</span></div><div><b>${esc(o.name)}</b> · ${esc(o.phone)}<br>${esc(o.address)}</div><div class="small" style="margin-top:7px">${o.items.map(i=>esc(i.name)+' × '+i.qty).join(', ')}</div><div style="margin-top:7px"><b>₱${money(o.total)}</b> · ${o.payment}${o.ref?' · Ref: '+esc(o.ref):''}</div><div class="row" style="margin-top:9px"><select ${o.status==='Completed'?'disabled':''} onchange="updateOrderStatus('${o.id}',this.value)" style="max-width:180px"><option ${o.status==='New'?'selected':''}>New</option><option ${o.status==='Preparing'?'selected':''}>Preparing</option><option ${o.status==='Out for delivery'?'selected':''}>Out for delivery</option><option ${o.status==='Completed'?'selected':''}>Completed</option><option ${o.status==='Cancelled'?'selected':''}>Cancelled</option></select><button class="secondary" onclick="printOrder('${o.id}')">Print</button>${o.status==='Completed'?'<button class="secondary" onclick="requestChangeOrderStatus(\''+o.id+'\')">Change</button>':''}</div></div>`).join('');}
+function updateOrderStatus(id,status){
+  let o=db.orders.find(x=>x.id===id);
+  if(!o || o.status==='Completed')return;
+  if(status==='Cancelled' && o.status!=='Cancelled'){
+    o.items.forEach(item=>{
+      let f=db.foods.find(x=>x.id===item.id);
+      if(f)f.qty+=Number(item.qty);
+    });
+  }
+  o.status=status;
+  save();
+  renderOrders();
+  renderFoods();
+}
+function adminPinConfirm(message, onSuccess){
+  let pin=prompt(message+'\\n\\nEnter Admin PIN:');
+  if(pin===null)return;
+  if(pin!==db.settings.adminPin){
+    alert('Wrong Admin PIN.');
+    return;
+  }
+  onSuccess();
+}
+function requestChangeOrderStatus(id){
+  let o=db.orders.find(x=>x.id===id);
+  if(!o || o.status!=='Completed')return;
+  adminPinConfirm('This order is already Completed. Admin confirmation is required to change its status.',()=>{
+    let next=prompt('Enter the new status:\\n\\n1 = New\\n2 = Preparing\\n3 = Out for delivery\\n4 = Cancelled');
+    if(next===null)return;
+    let map={'1':'New','2':'Preparing','3':'Out for delivery','4':'Cancelled'};
+    let status=map[next.trim()];
+    if(!status)return alert('Invalid status.');
+    if(status==='Cancelled'){
+      o.items.forEach(item=>{
+        let f=db.foods.find(x=>x.id===item.id);
+        if(f)f.qty+=Number(item.qty);
+      });
+    }
+    o.status=status;
+    save();
+    renderOrders();
+    renderFoods();
+  });
+}
+function clearOrders(){
+  if(!db.orders.length)return alert('Wala pay orders nga i-clear.');
+  let pin=prompt('Enter Admin PIN to clear all orders:');
+  if(pin===null)return;
+  if(pin!==db.settings.adminPin){
+    alert('Wrong Admin PIN.');
+    return;
+  }
+  let confirmClear=confirm('Admin PIN accepted.\\n\\nDo you want to clear ALL orders?\\n\\nClick OK for YES or Cancel for NO.');
+  if(!confirmClear)return;
+  db.orders=[];
+  save();
+  renderOrders();
+  alert('All orders have been cleared.');
+}
+function printOrder(id){let o=db.orders.find(x=>x.id===id);let w=window.open('','_blank');w.document.write('<pre style="font:16px system-ui;white-space:pre-wrap">'+esc(JSON.stringify(o,null,2))+'</pre>');w.print();}
+
+renderFoods();
+</script>
+</body>
+</html>
